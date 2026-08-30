@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Universal ESP32</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #111; color: #fff; margin: 0; } 
+        button { padding: 15px 30px; font-size: 18px; background: #28a745; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1 id="role">Conectando...</h1>
+    <button id="btn">Ativar Sensores</button>
+    <p id="status"></p>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // 1. Variáveis globais para armazenar a última inclinação lida
+        let currentX = 0;
+        let currentY = 0;
+        let isLoopRunning = false;
+
+        // Envia a solicitação de entrada no formato esperado pelo servidor
+        socket.emit('join', 'controller');
+
+        socket.on('role', data => {
+            const roleName = typeof data === 'object' ? data.role : data;
+            document.getElementById('role').innerText = roleName;
+        });
+        
+        document.getElementById('btn').onclick = () => {
+            if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(res => res === 'granted' && start());
+            } else { 
+                start(); 
+            }
+        };
+
+        function start() {
+            document.getElementById('btn').style.display = 'none';
+            
+            // 2. O sensor gira livremente, mas apenas salva os valores localmente
+            window.addEventListener('deviceorientation', e => {
+                const beta = e.beta || 0;
+                const gamma = e.gamma || 0;
+
+                // Mantém a normalização para o intervalo neutro de -1.0 a 1.0
+                currentX = Math.max(-1.0, Math.min(1.0, gamma / 45.0));
+                currentY = Math.max(-1.0, Math.min(1.0, beta / 45.0));
+
+                document.getElementById('status').innerText = `Eixo Y: ${currentY.toFixed(2)}`;
+            });
+
+            // 3. THROTTLE (Limitação de Rede): 
+            // Só envia os dados consolidados a cada 33ms (30 FPS), poupando o túnel da Cloudflare
+            if (!isLoopRunning) {
+                isLoopRunning = true;
+                setInterval(() => {
+                    socket.emit('move', {
+                        axes: [currentX, currentY],
+                        buttons: [0] // Mantém a estrutura modular para botões futuros
+                    });
+                }, 20);
+            }
+        }
+    </script>
+</body>
+</html>

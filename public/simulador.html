@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador Pong - ESP32</title>
+    <style>
+        body { background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; flex-direction: column; }
+        canvas { background: #000; border: 4px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+    <h2>Simulador da Tela (Agnóstico)</h2>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const socket = io();
+
+        const paddleW = 10, paddleH = 80;
+        let positionsY = [160, 160, 160]; 
+        let ball = { x: 300, y: 200, dx: 4, dy: 4, size: 8 };
+        let scores = [0, 0, 0]; 
+
+        // 1. ESCUTA O TICK RATE DO SERVIDOR (30 FPS)
+        socket.on('update_simulator', (inputs) => {
+            // O servidor agora manda um array limpo: [{x, y, btn}, {x, y, btn}...]
+            for (let i = 0; i < inputs.length; i++) {
+                if (inputs[i]) {
+                    // 2. CONVERSÃO REVERSA: Mapeia o Byte (0-255) de volta para a altura do Canvas
+                    let mappedY = (inputs[i].y / 255) * (canvas.height - paddleH);
+                    positionsY[i] = mappedY;
+                }
+            }
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha Raquetes
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(20, positionsY[0], paddleW, paddleH);
+            ctx.fillRect(canvas.width - 30, positionsY[1], paddleW, paddleH);
+
+            // Linha do centro
+            ctx.setLineDash([10, 15]);
+            ctx.beginPath(); ctx.moveTo(canvas.width/2, 0); ctx.lineTo(canvas.width/2, canvas.height);
+            ctx.strokeStyle = '#fff'; ctx.stroke();
+
+            // Movimento da Bolinha (Agora roda apenas localmente para teste visual)
+            ball.x += ball.dx; ball.y += ball.dy;
+            if (ball.y <= 0 || ball.y >= canvas.height) ball.dy *= -1;
+
+            if (ball.x <= 30 && ball.y > positionsY[0] && ball.y < positionsY[0] + paddleH) { ball.dx *= -1; ball.x = 30; }
+            if (ball.x >= canvas.width - 30 - ball.size && ball.y > positionsY[1] && ball.y < positionsY[1] + paddleH) { ball.dx *= -1; ball.x = canvas.width - 30 - ball.size; }
+
+            if (ball.x < 0) { scores[1]++; resetBall(); }
+            if (ball.x > canvas.width) { scores[0]++; resetBall(); }
+
+            // Desenha Placar e Bolinha
+            ctx.font = '30px Arial';
+            ctx.fillText(scores[0], canvas.width/4, 50); 
+            ctx.fillText(scores[1], 3*canvas.width/4, 50);
+            ctx.fillRect(ball.x, ball.y, ball.size, ball.size);
+
+            // O envio de socket.emit('game_state') foi completamente removido daqui
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetBall() { ball.x = canvas.width/2; ball.y = canvas.height/2; ball.dx *= -1; }
+        
+        gameLoop();
+    </script>
+</body>
+</html>
