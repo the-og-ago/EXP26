@@ -1,0 +1,14 @@
+
+# Dependências do Node.js (Isso é o mais importante!)
+node_modules/
+
+# Logs de erro do npm
+npm-debug.log*
+
+# Variáveis de ambiente (caso você use um arquivo .env no futuro)
+.env
+
+# Pastas de build/compilação do ESP32 (se usar VS Code/PlatformIO)
+.pio/
+.vscode/
+build/
