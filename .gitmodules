@@ -1,0 +1,9 @@
+[submodule "lib/display"]
+	path = lib/display
+	url = https://github.com/the-og-ago/EXP26-display.git
+[submodule "lib/engine"]
+	path = lib/engine
+	url = https://github.com/the-og-ago/EXP26-engine.git
+[submodule "lib/web"]
+	path = lib/web
+	url = https://github.com/the-og-ago/EXP26-web.git
