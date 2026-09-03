@@ -47,7 +47,7 @@ uint16_t getIndex(uint8_t x, uint8_t y) {
 }
 
 /* ===================== EVENTOS DO WEBSOCKET (BINÁRIO) ===================== */
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+void webSocketEvent(WStype_t type,  uint8_t *payload, size_t length) {
   switch(type) {
     case WStype_CONNECTED:
       Serial.println("[ESP32] Conectado ao Túnel Cloudflare!");
